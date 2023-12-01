@@ -1,10 +1,11 @@
 import glob
+import config
 import sqlite3 as sql3
 from io_proj_lib import import_line, how_many_lines, import_the_menu
 from datetime import date
 
 
-with sql3.connect('students.db') as connection:
+with sql3.connect(config.STUDENTS_DB) as connection:
     cursor = connection.cursor()
 
 
@@ -128,10 +129,5 @@ def find_by_name(name, class_id=None):
 
 
 if __name__ == "__main__":
-    #create_table_students()
-    #load_into_table("classes_txt/*.txt")
-    #create_table_menu_master()
-    #print(find_in_menu())
-    print(find_by_date("25.11"))
     connection.commit()
     connection.close()

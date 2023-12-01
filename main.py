@@ -13,6 +13,7 @@ from datetime import date
 from time import sleep
 import asyncio
 import logging
+import config
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters.command import Command, CommandObject
@@ -25,7 +26,7 @@ from pytrovich.maker import PetrovichDeclinationMaker
 nest_asyncio.apply()
 maker = PetrovichDeclinationMaker()
 logging.basicConfig(level=logging.INFO)
-bot = Bot(token="6436220801:AAFQC-2clHRBxmzNK9_6X57AUoCzyQwPoAM")
+bot = Bot(config.BOT_TOKEN)
 dp = Dispatcher()
 router = Router()
 
