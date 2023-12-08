@@ -171,6 +171,7 @@ async def menu_event(message: types.Message, command: CommandObject):
             try:
                 await bot.send_message(chat_id=message.from_user.id,
                                        text="Недостаточно прав для выполнения действия.")
+                await message.delete()
             except:
                 pass
 dp.message.register(menu_event, Command("menu"))
@@ -211,7 +212,9 @@ async def bday_event(message: types.Message, command: CommandObject):
             await send_celebs(message, find_by_date(today_for_search))
     else:
         try:
-            await bot.send_message(chat_id=message.from_user.id, text="Недостаточно прав для выполнения действия.")
+            await bot.send_message(chat_id=message.from_user.id,
+                                   text="Недостаточно прав для выполнения действия.")
+            await message.delete()
         except:
             pass
 dp.message.register(bday_event, Command("bday"))
