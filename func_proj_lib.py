@@ -46,10 +46,9 @@ def create_table_menu_master():
     ''', import_the_menu("2weekrotation.txt"))
 
 
-def find_in_menu():
+def find_in_menu(bot_today=date.today()):
     zero = date(2023, 11, 13) # 316
-    today = date.today()
-    delta = today - zero
+    delta = abs(bot_today - zero)
     delta = delta.days % 14
     try:
         cursor.execute("""

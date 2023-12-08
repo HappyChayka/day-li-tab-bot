@@ -50,11 +50,13 @@ async def menu_sched():
                            text=f"{menu_list}",
                            message_thread_id=message_thread_id)
 
+
 async def bday_sched():
     #chat_id, message_thread_id
     chat_id = -1001185804748
     message_thread_id = 13225
     bday_list = find_by_date(today_for_search)
+    send_list = []
     try:
         if len(bday_list) == 0:
             await bot.send_message(chat_id=chat_id,
@@ -67,10 +69,12 @@ async def bday_sched():
             for i in bday_list:
                 name = " ".join(await name_cases_to_genitive(i[0].split()[0], i[0].split()[1]))
                 school_class = i[1]
-                await bot.send_message(chat_id=chat_id,
-                                       text=f"*{name} из {school_class} класса",
-                                       message_thread_id=message_thread_id)
-                sleep(0.001)
+                send_list.append(f"*{name} из {school_class} класса")
+            send_list = "\n".join(send_list)
+            await bot.send_message(chat_id=chat_id,
+                                   text=send_list,
+                                   message_thread_id=message_thread_id)
+            sleep(0.001)
             await bot.send_message(chat_id=chat_id,
                                    text=f"Не забудьте поздравить!",
                                    message_thread_id=message_thread_id)
@@ -134,7 +138,7 @@ async def help_event(message: types.Message):
     if message.chat.type == "private":
         await message.answer('''
     /start — Информация о боте
-    /menu — Актуальное меню в Лицее
+    /menu {Дата в формате ДД.ММ}
     /help — Список команд бота
     /bday {Дата в формате ДД.ММ} / {Ф/И/О} , {КлассБуква}
         { } / { } = Взаимозаменяемые дополнительные фильтры
@@ -144,12 +148,16 @@ dp.message.register(help_event, Command("help"))
 
 
 @dp.message(Command("menu"))
-async def menu_event(message: types.Message):
-    menu_list = find_in_menu()
-
+async def menu_event(message: types.Message, command: CommandObject):
+    if command.args:
+        comm_args = str(command.args).split(".")
+        date_in_args = date(day=int(comm_args[0]), month=int(comm_args[1]), year=date.today().year)
+        menu_list = find_in_menu(date_in_args)
+    else:
+        menu_list = find_in_menu()
     if message.chat.type == "private":
         if menu_list is None:
-            menu_list = "Сегодня столовая закрыта."
+            menu_list = "В этот день столовая закрыта."
         await message.answer(f"{menu_list}")
 
     else:
@@ -216,7 +224,7 @@ async def scheduler():
     f_scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
     # -1001185804748, 13225     li_space
     # -1001610094748, 2         my_chat
-    trigger = CronTrigger(hour=7, minute=15)
+    trigger = CronTrigger(hour=7, minute=00)
     f_scheduler.add_job(bday_sched, trigger)
     f_scheduler.add_job(menu_sched, trigger)
     f_scheduler.start()
