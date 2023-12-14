@@ -10,9 +10,14 @@ from datetime import date
 from time import sleep
 import asyncio
 import logging
+
+from aiogram.exceptions import TelegramNetworkError
+
 import config
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher, types, Router
+from aiogram.methods import GetUpdates
+
 from aiogram.filters.command import Command, CommandObject
 from sqlite3 import Error
 from apscheduler.triggers.cron import CronTrigger
@@ -224,15 +229,24 @@ async def scheduler():
     f_scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
     # -1001185804748, 13225     li_space
     # -1001610094748, 2         my_chat
-    trigger = CronTrigger(hour=7, minute=00)
+    trigger = CronTrigger(hour=7, minute=15)
     f_scheduler.add_job(bday_sched, trigger)
     f_scheduler.add_job(menu_sched, trigger)
+    f_scheduler.add_job(reconnect, "interval", hours=2)
     f_scheduler.start()
 
 
 async def on_startup():
     await asyncio.create_task(scheduler())
     await dp.start_polling(bot)
+
+
+async def reconnect():
+    try:
+        await bot(GetUpdates())
+    except TelegramNetworkError:
+        await dp.stop_polling()
+        await dp.start_polling(bot)
 
 
 async def main():
