@@ -6,24 +6,22 @@
 
 import nest_asyncio
 
-from datetime import date
+from datetime import date, datetime
 from time import sleep
 import asyncio
 import logging
-
-from aiogram.exceptions import TelegramNetworkError
-
 import config
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.methods import GetUpdates
-
 from aiogram.filters.command import Command, CommandObject
+from aiogram.exceptions import TelegramNetworkError
 from sqlite3 import Error
 from apscheduler.triggers.cron import CronTrigger
 from func_proj_lib import find_by_date, find_by_name, find_in_menu
 from pytrovich.enums import NamePart, Gender, Case
 from pytrovich.maker import PetrovichDeclinationMaker
+
 
 nest_asyncio.apply()
 maker = PetrovichDeclinationMaker()
@@ -35,6 +33,32 @@ router = Router()
 today_for_search = str(date.today().strftime("%d.%m"))
 
 
+class PreviousDate:
+    def __init__(self, date_o=datetime(1900, 1, 1, 1, 1, 1)):
+        self._date = date_o
+
+    def get_date(self):
+        return self._date
+
+    def set_date(self, value):
+        self._date = value
+
+"""        
+class ChatAdmins:
+    def __init__(self):
+"""
+
+prevDate = PreviousDate()
+
+
+def can_call(prev, cur):
+    access = False
+    if (cur - prev._date).total_seconds() > 1200:  # 86400 секунд = 24 часа
+        access = True
+        prev.set_date(cur)
+    return access
+
+
 async def name_cases_to_genitive(l_name, f_name):
     f_name = maker.make(NamePart.FIRSTNAME, Gender.MALE, Case.GENITIVE, f_name)
     l_name = maker.make(NamePart.LASTNAME, Gender.MALE, Case.GENITIVE, l_name)
@@ -42,9 +66,11 @@ async def name_cases_to_genitive(l_name, f_name):
 
 
 async def menu_sched():
-    #chat_id, message_thread_id
+    # chat_id, message_thread_id
     chat_id = -1001185804748
     message_thread_id = 13430
+    # chat_id = -1001610094748
+    # message_thread_id = 2
     menu_list = find_in_menu()
     if menu_list is None:
         menu_list = "Сегодня столовая закрыта."
@@ -54,9 +80,11 @@ async def menu_sched():
 
 
 async def bday_sched():
-    #chat_id, message_thread_id
+    # chat_id, message_thread_id
     chat_id = -1001185804748
     message_thread_id = 13225
+    # chat_id = -1001610094748
+    # message_thread_id = 2
     bday_list = find_by_date(today_for_search)
     send_list = []
     try:
@@ -102,7 +130,6 @@ async def send_celebs(message, bday_list, date="Сегодня", date_known=True
                 list_of_answers.append(answ)
             await message.answer("\n".join(list_of_answers))
             sleep(0.001)
-
             if date_known:
                 await message.answer("Поздравляем!")
         else:
@@ -163,11 +190,11 @@ async def menu_event(message: types.Message, command: CommandObject):
         await message.answer(f"{menu_list}")
 
     else:
-        chat_admins = []
+        chat_admins = set()
         if message.chat.type != "private":
             get_admins = await bot.get_chat_administrators(message.chat.id)
             for admin in get_admins:
-                chat_admins.append(admin.user.id)
+                chat_admins.add(admin.user.id)
         if message.from_user.id in chat_admins:
             if menu_list is None:
                 menu_list = "Сегодня столовая закрыта."
@@ -184,11 +211,11 @@ dp.message.register(menu_event, Command("menu"))
 
 @dp.message(Command("bday"))
 async def bday_event(message: types.Message, command: CommandObject):
-    chat_admins = []
+    chat_admins = set()
     if message.chat.type != "private":
         get_admins = await bot.get_chat_administrators(message.chat.id)
         for admin in get_admins:
-            chat_admins.append(admin.user.id)
+            chat_admins.add(admin.user.id)
     if message.chat.type == "private" or message.from_user.id in chat_admins:
         class_id = 0
         if command.args:
@@ -225,6 +252,40 @@ async def bday_event(message: types.Message, command: CommandObject):
 dp.message.register(bday_event, Command("bday"))
 
 
+@dp.message(Command("reconnect"))
+async def reconnect_command(message: types.Message):
+    if can_call(prevDate, datetime.now()):
+        try:
+            await rec()
+            await message.answer(f"Команда выполнена успешно в {datetime.now()}")
+            await message.delete()
+        except TelegramNetworkError as err:
+            await message.answer(f"Команда не выполнена {err}")
+            await message.delete()
+    else:
+        await message.answer(f"Повторите позже. Команда на задержке.")
+        await message.delete()
+dp.message.register(reconnect_command, Command("reconnect"))
+
+
+@dp.message(Command("resend_em"))
+async def emergency_resend(message: types.Message):
+    chat_admins = set()
+    if message.chat.type != "private":
+        get_admins = await bot.get_chat_administrators(message.chat.id)
+        for admin in get_admins:
+            chat_admins.add(admin.user.id)
+        if message.from_user.id in chat_admins:
+            try:
+                await bday_sched()
+                await menu_sched()
+            except TelegramNetworkError:
+                await message.answer("Сначала используйте /reconnect")
+        else:
+            await message.delete()
+dp.message.register(emergency_resend, Command("resend_em"))
+
+
 async def scheduler():
     f_scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
     # -1001185804748, 13225     li_space
@@ -232,7 +293,7 @@ async def scheduler():
     trigger = CronTrigger(hour=7, minute=15)
     f_scheduler.add_job(bday_sched, trigger)
     f_scheduler.add_job(menu_sched, trigger)
-    f_scheduler.add_job(reconnect, "interval", hours=2)
+    f_scheduler.add_job(reconnect, "interval", hours=1)
     f_scheduler.start()
 
 
@@ -241,12 +302,16 @@ async def on_startup():
     await dp.start_polling(bot)
 
 
-async def reconnect():
+async def rec():
     try:
         await bot(GetUpdates())
     except TelegramNetworkError:
         await dp.stop_polling()
         await dp.start_polling(bot)
+
+
+async def reconnect():
+    await rec()
 
 
 async def main():
