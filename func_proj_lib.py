@@ -129,4 +129,5 @@ def find_by_name(name, class_id=None):
 
 if __name__ == "__main__":
     connection.commit()
+    #print(find_by_date("19.12"))
     connection.close()

@@ -6,7 +6,7 @@
 
 import nest_asyncio
 
-from datetime import date, datetime
+from datetime import date
 from time import sleep
 import asyncio
 import logging
@@ -32,31 +32,10 @@ router = Router()
 
 today_for_search = str(date.today().strftime("%d.%m"))
 
-
-class PreviousDate:
-    def __init__(self, date_o=datetime(1900, 1, 1, 1, 1, 1)):
-        self._date = date_o
-
-    def get_date(self):
-        return self._date
-
-    def set_date(self, value):
-        self._date = value
-
 """        
 class ChatAdmins:
     def __init__(self):
 """
-
-prevDate = PreviousDate()
-
-
-def can_call(prev, cur):
-    access = False
-    if (cur - prev._date).total_seconds() > 1200:  # 86400 секунд = 24 часа
-        access = True
-        prev.set_date(cur)
-    return access
 
 
 async def name_cases_to_genitive(l_name, f_name):
@@ -66,6 +45,8 @@ async def name_cases_to_genitive(l_name, f_name):
 
 
 async def menu_sched():
+    await rec()
+    sleep(0.1)
     # chat_id, message_thread_id
     chat_id = -1001185804748
     message_thread_id = 13430
@@ -178,6 +159,9 @@ dp.message.register(help_event, Command("help"))
 
 @dp.message(Command("menu"))
 async def menu_event(message: types.Message, command: CommandObject):
+    #await rec()
+    #sleep(0.1)
+    await bot(GetUpdates())
     if command.args:
         comm_args = str(command.args).split(".")
         date_in_args = date(day=int(comm_args[0]), month=int(comm_args[1]), year=date.today().year)
@@ -211,13 +195,15 @@ dp.message.register(menu_event, Command("menu"))
 
 @dp.message(Command("bday"))
 async def bday_event(message: types.Message, command: CommandObject):
+    #await rec()
+    #sleep(0.1)
+    await bot(GetUpdates())
     chat_admins = set()
     if message.chat.type != "private":
         get_admins = await bot.get_chat_administrators(message.chat.id)
         for admin in get_admins:
             chat_admins.add(admin.user.id)
     if message.chat.type == "private" or message.from_user.id in chat_admins:
-        class_id = 0
         if command.args:
 
             comm_args = command.args.split(",")
@@ -226,6 +212,7 @@ async def bday_event(message: types.Message, command: CommandObject):
                 class_id = comm_args[1].strip()
             elif len(comm_args) > 2:
                 await message.answer("Ошибка! Максимально допустимо два аргумента.")
+                return
             else:
                 class_id = None
 
@@ -252,22 +239,6 @@ async def bday_event(message: types.Message, command: CommandObject):
 dp.message.register(bday_event, Command("bday"))
 
 
-@dp.message(Command("reconnect"))
-async def reconnect_command(message: types.Message):
-    if can_call(prevDate, datetime.now()):
-        try:
-            await rec()
-            await message.answer(f"Команда выполнена успешно в {datetime.now()}")
-            await message.delete()
-        except TelegramNetworkError as err:
-            await message.answer(f"Команда не выполнена {err}")
-            await message.delete()
-    else:
-        await message.answer(f"Повторите позже. Команда на задержке.")
-        await message.delete()
-dp.message.register(reconnect_command, Command("reconnect"))
-
-
 @dp.message(Command("resend_em"))
 async def emergency_resend(message: types.Message):
     chat_admins = set()
@@ -276,11 +247,9 @@ async def emergency_resend(message: types.Message):
         for admin in get_admins:
             chat_admins.add(admin.user.id)
         if message.from_user.id in chat_admins:
-            try:
-                await bday_sched()
-                await menu_sched()
-            except TelegramNetworkError:
-                await message.answer("Сначала используйте /reconnect")
+            await bday_sched()
+            await menu_sched()
+
         else:
             await message.delete()
 dp.message.register(emergency_resend, Command("resend_em"))
@@ -322,5 +291,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
