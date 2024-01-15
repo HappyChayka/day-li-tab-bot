@@ -99,7 +99,7 @@ def find_by_date(date, class_id=None):
 
 
 def find_by_name(name, class_id=None):
-    if class_id != None:
+    if class_id is not None:
         try:
             cursor.execute('''
                 SELECT name, class, day_month_bday FROM students
@@ -128,6 +128,8 @@ def find_by_name(name, class_id=None):
 
 
 if __name__ == "__main__":
+    create_table_students()
+    create_table_menu_master()
+    load_into_table("classes_txt/*")
     connection.commit()
-    #print(find_by_date("19.12"))
     connection.close()
