@@ -5,17 +5,20 @@
 # Топик в моём чате
 
 import nest_asyncio
+import sys
 from datetime import date
 from time import sleep
 import asyncio
 import logging
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 import config
 from aiohttp import web
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters.command import Command, CommandObject
 from sqlite3 import Error
-from apscheduler.triggers.cron import CronTrigger
 from func_proj_lib import find_by_date, find_by_name, find_in_menu
 from pytrovich.enums import NamePart, Gender, Case
 from pytrovich.maker import PetrovichDeclinationMaker
@@ -24,7 +27,7 @@ from pytrovich.maker import PetrovichDeclinationMaker
 nest_asyncio.apply()
 maker = PetrovichDeclinationMaker()
 logging.basicConfig(level=logging.INFO)
-webhook = config.WEBHOOK_URL
+webhook = config.BASE_WEBHOOK_URL + config.WEBHOOK_PATH
 bot = Bot(config.BOT_TOKEN)
 dp = Dispatcher()
 router = Router()
@@ -240,29 +243,32 @@ async def emergency_resend(message: types.Message):
             await message.delete()
 dp.message.register(emergency_resend, Command("resend_em"))
 
-
-async def scheduler():
-    f_scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
-    # -1001185804748, 13225     li_space
-    # -1001610094748, 2         my_chat
-    trigger = CronTrigger(hour=7, minute=15)
-    f_scheduler.add_job(bday_sched, trigger)
-    f_scheduler.add_job(menu_sched, trigger)
-    f_scheduler.start()
-
-
 async def on_startup():
     await bot.set_webhook(url=webhook)
-    await asyncio.create_task(scheduler())
-
 
 async def on_shutdown():
     await bot.delete_webhook()
 
 
 async def main():
-    await on_startup()
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    session = AiohttpSession()
+    bot_settings = {"session": session, "parse_mode": ParseMode.HTML}
+    bot = Bot(token=config.BOT_TOKEN, **bot_settings)
+    storage = MemoryStorage()
+    # In order to use RedisStorage you need to use Key Builder with bot ID:
+    # storage = RedisStorage.from_url(REDIS_DSN, key_builder=DefaultKeyBuilder(with_bot_id=True))
 
+    main_dispatcher = Dispatcher(storage=storage)
+    main_dispatcher.include_router(router)
+    main_dispatcher.startup.register(on_startup)
+
+    app = web.Application()
+    SimpleRequestHandler(dispatcher=main_dispatcher, bot=bot).register(app, path=config.WEBHOOK_PATH)
+
+    setup_application(app, main_dispatcher, bot=bot)
+
+    web.run_app(app, host=config.WEB_SERVER_HOST, port=config.WEB_SERVER_PORT)
 
 if __name__ == "__main__":
     asyncio.run(main())
