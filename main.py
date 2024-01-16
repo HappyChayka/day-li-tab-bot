@@ -243,8 +243,10 @@ async def emergency_resend(message: types.Message):
             await message.delete()
 dp.message.register(emergency_resend, Command("resend_em"))
 
+
 async def on_startup():
     await bot.set_webhook(url=webhook)
+
 
 async def on_shutdown():
     await bot.delete_webhook()
