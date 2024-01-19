@@ -47,7 +47,7 @@ def create_table_menu_master():
 
 
 def find_in_menu(bot_today=date.today()):
-    zero = date(2023, 11, 13) # 316
+    zero = date(2024, 1, 8) # 8
     delta = abs(bot_today - zero)
     delta = delta.days % 14
     try:

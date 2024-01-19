@@ -28,7 +28,9 @@ nest_asyncio.apply()
 maker = PetrovichDeclinationMaker()
 logging.basicConfig(level=logging.INFO)
 webhook = config.BASE_WEBHOOK_URL + config.WEBHOOK_PATH
-bot = Bot(config.BOT_TOKEN)
+session = AiohttpSession()
+bot_settings = {"session": session, "parse_mode": ParseMode.HTML}
+bot = Bot(token=config.BOT_TOKEN, **bot_settings)
 dp = Dispatcher()
 router = Router()
 
@@ -109,15 +111,9 @@ async def send_celebs(message, bday_list, date="Сегодня", date_known=True
             if date_known:
                 await message.answer("Поздравляем!")
         else:
-            await message.answer(f"{date} ни у кого нет дня рождения.")
+            await message.answer(f"Ни у кого нет дня рождения.")
     except Error:
         await message.answer("Произошла ошибка SQL, доложите @HappyChayka.")
-
-
-"""@dp.message(Command("testic"))
-async def test_testic(message: types.Message):
-    await bday_sched(-1001610094748, 233)
-dp.message.register(test_testic, Command("testic"))"""
 
 
 @dp.message(Command("start"))
@@ -228,22 +224,6 @@ async def bday_event(message: types.Message, command: CommandObject):
 dp.message.register(bday_event, Command("bday"))
 
 
-@dp.message(Command("resend_em"))
-async def emergency_resend(message: types.Message):
-    chat_admins = set()
-    if message.chat.type != "private":
-        get_admins = await bot.get_chat_administrators(message.chat.id)
-        for admin in get_admins:
-            chat_admins.add(admin.user.id)
-        if message.from_user.id in chat_admins:
-            await bday_sched()
-            await menu_sched()
-
-        else:
-            await message.delete()
-dp.message.register(emergency_resend, Command("resend_em"))
-
-
 async def on_startup():
     await bot.set_webhook(url=webhook)
 
@@ -254,9 +234,7 @@ async def on_shutdown():
 
 async def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    session = AiohttpSession()
-    bot_settings = {"session": session, "parse_mode": ParseMode.HTML}
-    bot = Bot(token=config.BOT_TOKEN, **bot_settings)
+
     storage = MemoryStorage()
     # In order to use RedisStorage you need to use Key Builder with bot ID:
     # storage = RedisStorage.from_url(REDIS_DSN, key_builder=DefaultKeyBuilder(with_bot_id=True))
@@ -272,8 +250,10 @@ async def main():
 
     web.run_app(app, host=config.WEB_SERVER_HOST, port=config.WEB_SERVER_PORT)
 
+
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
