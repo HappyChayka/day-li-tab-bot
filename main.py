@@ -23,7 +23,6 @@ from func_proj_lib import find_by_date, find_by_name, find_in_menu
 from pytrovich.enums import NamePart, Gender, Case
 from pytrovich.maker import PetrovichDeclinationMaker
 
-
 nest_asyncio.apply()
 maker = PetrovichDeclinationMaker()
 logging.basicConfig(level=logging.INFO)
@@ -90,11 +89,11 @@ async def bday_sched():
         pass
 
 
-async def send_celebs(message, bday_list, date="Сегодня", date_known=True):
+async def send_celebs(message, bday_list, var_date="Сегодня", date_known=True):
     try:
         if len(bday_list) > 0:
             if date_known:
-                await message.answer(f"{date} день рождения у")
+                await message.answer(f"{var_date} день рождения у")
             sleep(0.001)
             list_of_answers = list()
             for i in bday_list:
@@ -236,15 +235,16 @@ async def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     storage = MemoryStorage()
-    # In order to use RedisStorage you need to use Key Builder with bot ID:
-    # storage = RedisStorage.from_url(REDIS_DSN, key_builder=DefaultKeyBuilder(with_bot_id=True))
 
     main_dispatcher = Dispatcher(storage=storage)
     main_dispatcher.include_router(router)
     main_dispatcher.startup.register(on_startup)
 
     app = web.Application()
-    SimpleRequestHandler(dispatcher=main_dispatcher, bot=bot).register(app, path=config.WEBHOOK_PATH)
+    SimpleRequestHandler(
+        dispatcher=main_dispatcher,
+        bot=bot
+    ).register(app, path=config.WEBHOOK_PATH)
 
     setup_application(app, main_dispatcher, bot=bot)
 
