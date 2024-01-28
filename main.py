@@ -12,7 +12,7 @@ import asyncio
 import logging
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import Update
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 import config
 from aiohttp import web
@@ -223,6 +223,11 @@ async def bday_event(message: types.Message, command: CommandObject):
 dp.message.register(bday_event, Command("bday"))
 
 
+async def process_event(event, context, dp: Dispatcher):
+    update = Update.model_validate(event, context={"bot": bot})
+    await dp.feed_update(bot=bot, update=update)
+
+
 async def on_startup():
     await bot.set_webhook(url=webhook)
 
@@ -234,26 +239,22 @@ async def on_shutdown():
 async def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
-    storage = MemoryStorage()
-
-    main_dispatcher = Dispatcher(storage=storage)
-    main_dispatcher.include_router(router)
-    main_dispatcher.startup.register(on_startup)
+    dp.include_router(router)
+    dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
 
     app = web.Application()
     SimpleRequestHandler(
-        dispatcher=main_dispatcher,
+        dispatcher=dp,
         bot=bot
     ).register(app, path=config.WEBHOOK_PATH)
 
-    setup_application(app, main_dispatcher, bot=bot)
+    setup_application(app, dp, bot=bot)
 
-    web.run_app(app, host=config.WEB_SERVER_HOST, port=config.WEB_SERVER_PORT)
+
+def lambda_handler(event, context):
+    return asyncio.get_event_loop().run_until_complete(process_event(event, context, dp))
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
-
