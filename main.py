@@ -6,6 +6,8 @@
 
 import nest_asyncio
 import sys
+import config
+import json
 from datetime import date
 from time import sleep
 import asyncio
@@ -14,7 +16,7 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.types import Update
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
-import config
+
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters.command import Command, CommandObject
@@ -118,32 +120,33 @@ async def send_celebs(message, bday_list, var_date="Сегодня", date_known=
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     if message.chat.type == "private":
-        await message.answer('''Привет!
-    Я — первый бот Ли24!
-    Пока что я могу только поздравить с днём рождения и отправить тебе актуальное меню столовой.
-    Но дальше будет только больше!
-    
-    Мои команды:
-    /start — Информация о боте
-    /menu — Актуальное меню в Лицее
-    /bday — Дни Рождения
-    
-    Напиши /help для дополнительной информации!
-    
-    (я не понимаю речь, извини)''')
+        await message.answer('''
+Привет!
+Я — первый бот Ли24!
+Пока что я могу только поздравить с днём рождения и отправить тебе актуальное меню столовой.
+Но дальше будет только больше!
+
+Мои команды:
+/start — Информация о боте
+/menu — Актуальное меню в Лицее
+/bday — Дни Рождения
+
+Напиши /help для дополнительной информации!
+
+(я не понимаю речь, извини)''')
 
 
 @dp.message(Command("help"))
 async def help_event(message: types.Message):
     if message.chat.type == "private":
         await message.answer('''
-    /start — Информация о боте
-    /menu {Дата в формате ДД.ММ}
-    /help — Список команд бота
-    /bday {Дата в формате ДД.ММ} / {Ф/И/О} , {КлассБуква}
-        { } / { } = Взаимозаменяемые дополнительные фильтры
-    
-        Обязательно соблюдайте последовательность строчных и заглавных букв.''')
+/start — Информация о боте
+/menu {Дата в формате ДД.ММ}
+/help — Список команд бота
+/bday {Дата в формате ДД.ММ} / {Ф/И/О} , {КлассБуква}
+    { } / { } = Взаимозаменяемые дополнительные фильтры
+
+    Обязательно соблюдайте последовательность строчных и заглавных букв.''')
 dp.message.register(help_event, Command("help"))
 
 
@@ -223,11 +226,6 @@ async def bday_event(message: types.Message, command: CommandObject):
 dp.message.register(bday_event, Command("bday"))
 
 
-async def process_event(event, context, dp: Dispatcher):
-    update = Update.model_validate(event, context={"bot": bot})
-    await dp.feed_update(bot=bot, update=update)
-
-
 async def on_startup():
     await bot.set_webhook(url=webhook)
 
@@ -252,8 +250,14 @@ async def main():
     setup_application(app, dp, bot=bot)
 
 
-def lambda_handler(event, context):
-    return asyncio.get_event_loop().run_until_complete(process_event(event, context, dp))
+async def process_event(event, dp: Dispatcher):
+    update = Update.model_validate(event["body"], context={"bot": bot})
+    await dp.feed_update(bot=bot, update=update)
+
+
+async def yc_handler(event, context):
+    await process_event(event, dp)
+    return event.json()
 
 
 if __name__ == "__main__":
