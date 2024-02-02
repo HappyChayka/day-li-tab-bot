@@ -47,7 +47,7 @@ def create_table_menu_master():
 
 
 def find_in_menu(bot_today=date.today()):
-    zero = date(2023, 11, 13) # 316
+    zero = date(2024, 1, 8)  # 8
     delta = abs(bot_today - zero)
     delta = delta.days % 14
     try:
@@ -71,14 +71,14 @@ def load_into_table(location):
             ''', import_line(ite, i)[1:])
 
 
-def find_by_date(date, class_id=None):
-    if class_id != None:
+def find_by_date(var_date, class_id=None):
+    if class_id is not None:
         try:
             cursor.execute('''
                 SELECT name, class, day_month_bday FROM students
                 WHERE day_month_bday = ? AND class = ?
                 ORDER BY name;
-                ''', [str(date), str(class_id)])
+                ''', [str(var_date), str(class_id)])
 
             records = cursor.fetchall()
             return records
@@ -90,7 +90,7 @@ def find_by_date(date, class_id=None):
                 SELECT name, class, day_month_bday FROM students
                 WHERE day_month_bday = ?
                 ORDER BY name;
-                ''', [str(date)])
+                ''', [str(var_date)])
 
             records = cursor.fetchall()
             return records
@@ -99,7 +99,7 @@ def find_by_date(date, class_id=None):
 
 
 def find_by_name(name, class_id=None):
-    if class_id != None:
+    if class_id is not None:
         try:
             cursor.execute('''
                 SELECT name, class, day_month_bday FROM students
@@ -128,6 +128,8 @@ def find_by_name(name, class_id=None):
 
 
 if __name__ == "__main__":
+    create_table_students()
+    create_table_menu_master()
+    load_into_table("classes_txt/*")
     connection.commit()
-    #print(find_by_date("19.12"))
     connection.close()

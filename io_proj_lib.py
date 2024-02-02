@@ -3,15 +3,17 @@ def import_the_menu(location):
     with open(location, "r", encoding='utf8') as filename:
         point_menu = []
         for line in filename:
-            if line.rstrip("\n") not in "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12":
-                if line.rstrip(":\n").lstrip("\n") not in ["Завтрак", "Обед", "Полдник", "Первый ужин", "Второй ужин"]:
-                    pass
-                else:
-                    line = f"\n{line}"
-                point_menu.append("\n*".join(line.split(",")).replace(":\n", ":\n*"))
+            if line.strip("\n").strip() not in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]:
+                if line.strip():
+                    if line.strip("\n").strip() not in ["Завтрак", "Обед", "Полдник", "Первый ужин", "Второй ужин"]:
+                        line = f"* {line}"
+                    else:
+                        line = f"\n{line}"
+                    point_menu.append(f"{line}")
             else:
                 point_menu = "".join(point_menu)
-                output_list.append(point_menu)
+                if point_menu:
+                    output_list.append(point_menu)
                 point_menu = []
     return output_list
 
@@ -39,3 +41,5 @@ def how_many_lines(location):
             c += 1
     return c
 
+
+#print(len(import_the_menu("2weekrotation.txt")))

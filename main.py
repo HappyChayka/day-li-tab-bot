@@ -5,37 +5,37 @@
 # Топик в моём чате
 
 import nest_asyncio
-
+import sys
+import config
+import json
 from datetime import date
 from time import sleep
 import asyncio
 import logging
-import config
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.enums import ParseMode
+from aiogram.types import Update
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+
+from aiohttp import web
 from aiogram import Bot, Dispatcher, types, Router
-from aiogram.methods import GetUpdates
 from aiogram.filters.command import Command, CommandObject
-from aiogram.exceptions import TelegramNetworkError
 from sqlite3 import Error
-from apscheduler.triggers.cron import CronTrigger
 from func_proj_lib import find_by_date, find_by_name, find_in_menu
 from pytrovich.enums import NamePart, Gender, Case
 from pytrovich.maker import PetrovichDeclinationMaker
 
-
 nest_asyncio.apply()
 maker = PetrovichDeclinationMaker()
 logging.basicConfig(level=logging.INFO)
-bot = Bot(config.BOT_TOKEN)
+webhook = config.BASE_WEBHOOK_URL + config.WEBHOOK_PATH
+session = AiohttpSession()
+bot_settings = {"session": session, "parse_mode": ParseMode.HTML}
+bot = Bot(token=config.BOT_TOKEN, **bot_settings)
 dp = Dispatcher()
 router = Router()
 
 today_for_search = str(date.today().strftime("%d.%m"))
-
-"""        
-class ChatAdmins:
-    def __init__(self):
-"""
 
 
 async def name_cases_to_genitive(l_name, f_name):
@@ -45,8 +45,6 @@ async def name_cases_to_genitive(l_name, f_name):
 
 
 async def menu_sched():
-    await rec()
-    sleep(0.1)
     # chat_id, message_thread_id
     chat_id = -1001185804748
     message_thread_id = 13430
@@ -93,11 +91,11 @@ async def bday_sched():
         pass
 
 
-async def send_celebs(message, bday_list, date="Сегодня", date_known=True):
+async def send_celebs(message, bday_list, var_date="Сегодня", date_known=True):
     try:
         if len(bday_list) > 0:
             if date_known:
-                await message.answer(f"{date} день рождения у")
+                await message.answer(f"{var_date} день рождения у")
             sleep(0.001)
             list_of_answers = list()
             for i in bday_list:
@@ -114,54 +112,46 @@ async def send_celebs(message, bday_list, date="Сегодня", date_known=True
             if date_known:
                 await message.answer("Поздравляем!")
         else:
-            await message.answer(f"{date} ни у кого нет дня рождения.")
+            await message.answer(f"Ни у кого нет дня рождения.")
     except Error:
         await message.answer("Произошла ошибка SQL, доложите @HappyChayka.")
-
-
-"""@dp.message(Command("testic"))
-async def test_testic(message: types.Message):
-    await bday_sched(-1001610094748, 233)
-dp.message.register(test_testic, Command("testic"))"""
 
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     if message.chat.type == "private":
-        await message.answer('''Привет!
-    Я — первый бот Ли24!
-    Пока что я могу только поздравить с днём рождения и отправить тебе актуальное меню столовой.
-    Но дальше будет только больше!
-    
-    Мои команды:
-    /start — Информация о боте
-    /menu — Актуальное меню в Лицее
-    /bday — Дни Рождения
-    
-    Напиши /help для дополнительной информации!
-    
-    (я не понимаю речь, извини)''')
+        await message.answer('''
+Привет!
+Я — первый бот Ли24!
+Пока что я могу только поздравить с днём рождения и отправить тебе актуальное меню столовой.
+Но дальше будет только больше!
+
+Мои команды:
+/start — Информация о боте
+/menu — Актуальное меню в Лицее
+/bday — Дни Рождения
+
+Напиши /help для дополнительной информации!
+
+(я не понимаю речь, извини)''')
 
 
 @dp.message(Command("help"))
 async def help_event(message: types.Message):
     if message.chat.type == "private":
         await message.answer('''
-    /start — Информация о боте
-    /menu {Дата в формате ДД.ММ}
-    /help — Список команд бота
-    /bday {Дата в формате ДД.ММ} / {Ф/И/О} , {КлассБуква}
-        { } / { } = Взаимозаменяемые дополнительные фильтры
-    
-        Обязательно соблюдайте последовательность строчных и заглавных букв.''')
+/start — Информация о боте
+/menu {Дата в формате ДД.ММ}
+/help — Список команд бота
+/bday {Дата в формате ДД.ММ} / {Ф/И/О} , {КлассБуква}
+    { } / { } = Взаимозаменяемые дополнительные фильтры
+
+    Обязательно соблюдайте последовательность строчных и заглавных букв.''')
 dp.message.register(help_event, Command("help"))
 
 
 @dp.message(Command("menu"))
 async def menu_event(message: types.Message, command: CommandObject):
-    #await rec()
-    #sleep(0.1)
-    await bot(GetUpdates())
     if command.args:
         comm_args = str(command.args).split(".")
         date_in_args = date(day=int(comm_args[0]), month=int(comm_args[1]), year=date.today().year)
@@ -195,9 +185,6 @@ dp.message.register(menu_event, Command("menu"))
 
 @dp.message(Command("bday"))
 async def bday_event(message: types.Message, command: CommandObject):
-    #await rec()
-    #sleep(0.1)
-    await bot(GetUpdates())
     chat_admins = set()
     if message.chat.type != "private":
         get_admins = await bot.get_chat_administrators(message.chat.id)
@@ -239,58 +226,39 @@ async def bday_event(message: types.Message, command: CommandObject):
 dp.message.register(bday_event, Command("bday"))
 
 
-@dp.message(Command("resend_em"))
-async def emergency_resend(message: types.Message):
-    chat_admins = set()
-    if message.chat.type != "private":
-        get_admins = await bot.get_chat_administrators(message.chat.id)
-        for admin in get_admins:
-            chat_admins.add(admin.user.id)
-        if message.from_user.id in chat_admins:
-            await bday_sched()
-            await menu_sched()
-
-        else:
-            await message.delete()
-dp.message.register(emergency_resend, Command("resend_em"))
-
-
-async def scheduler():
-    f_scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
-    # -1001185804748, 13225     li_space
-    # -1001610094748, 2         my_chat
-    trigger = CronTrigger(hour=7, minute=15)
-    f_scheduler.add_job(bday_sched, trigger)
-    f_scheduler.add_job(menu_sched, trigger)
-    f_scheduler.add_job(reconnect, "interval", hours=1)
-    f_scheduler.start()
-
-
 async def on_startup():
-    await asyncio.create_task(scheduler())
-    await dp.start_polling(bot)
+    await bot.set_webhook(url=webhook)
 
 
-async def rec():
-    try:
-        await bot(GetUpdates())
-    except TelegramNetworkError:
-        await dp.stop_polling()
-        await dp.start_polling(bot)
-
-
-async def reconnect():
-    await rec()
+async def on_shutdown():
+    await bot.delete_webhook()
 
 
 async def main():
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(on_startup())
-    loop.close()
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+
+    dp.include_router(router)
+    dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
+
+    app = web.Application()
+    SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot
+    ).register(app, path=config.WEBHOOK_PATH)
+
+    setup_application(app, dp, bot=bot)
+
+
+async def process_event(event, dp: Dispatcher):
+    update = Update.model_validate(event["body"], context={"bot": bot})
+    await dp.feed_update(bot=bot, update=update)
+
+
+async def yc_handler(event, context):
+    await process_event(event, dp)
+    return event.json()
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
