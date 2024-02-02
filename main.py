@@ -7,16 +7,16 @@
 import nest_asyncio
 import sys
 import config
-import json
 from datetime import date
 from time import sleep
 import asyncio
 import logging
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.types import Update
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
-
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters.command import Command, CommandObject
@@ -226,8 +226,19 @@ async def bday_event(message: types.Message, command: CommandObject):
 dp.message.register(bday_event, Command("bday"))
 
 
+async def scheduler():
+    f_scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
+    # -1001185804748, 13225     li_space
+    # -1001610094748, 2         my_chat
+    trigger = CronTrigger(hour=6, minute=50)
+    f_scheduler.add_job(bday_sched, trigger)
+    f_scheduler.add_job(menu_sched, trigger)
+    f_scheduler.start()
+
+
 async def on_startup():
     await bot.set_webhook(url=webhook)
+    await asyncio.create_task(scheduler())
 
 
 async def on_shutdown():
@@ -250,14 +261,13 @@ async def main():
     setup_application(app, dp, bot=bot)
 
 
-async def process_event(event, dp: Dispatcher):
-    update = Update.model_validate(event["body"], context={"bot": bot})
-    await dp.feed_update(bot=bot, update=update)
-
-
 async def yc_handler(event, context):
-    await process_event(event, dp)
-    return event.json()
+    try:
+        update = Update.model_validate_json(event["body"], context={"bot": bot})
+        await dp.feed_update(bot=bot, update=update)
+        return {"statusCode": 200}
+    except Exception as err:
+        return {"statusCode": 500, "body": (event, err)}
 
 
 if __name__ == "__main__":
