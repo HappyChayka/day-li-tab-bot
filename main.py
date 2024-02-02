@@ -1,9 +1,3 @@
-# https://t.me/c/1185804748/13430
-# Топик в ли_спейс
-
-# https://t.me/c/1610094748/2
-# Топик в моём чате
-
 import nest_asyncio
 import sys
 import config
