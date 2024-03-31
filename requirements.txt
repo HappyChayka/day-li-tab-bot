@@ -46,5 +46,4 @@ Werkzeug==3.0.1
 wheel==0.41.3
 win32-setctime==1.1.0
 yarl==1.9.2
-asyncio~=3.4.3
 APScheduler~=3.10.4
