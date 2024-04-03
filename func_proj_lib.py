@@ -105,7 +105,7 @@ def find_by_name(name, class_id=None):
                 SELECT name, class, day_month_bday FROM students
                 WHERE name LIKE ? AND class = ?
                 ORDER BY name;
-                ''', [f"%{name}%".strip(), class_id])
+                ''', [f"%{name.title()}%".strip(), class_id])
 
             records = cursor.fetchall()
             return records
@@ -118,7 +118,7 @@ def find_by_name(name, class_id=None):
                 SELECT name, class, day_month_bday FROM students
                 WHERE name LIKE ?
                 ORDER BY name;
-                ''', [f"%{name}%".strip()])
+                ''', [f"%{name.title()}%".strip()])
 
             records = cursor.fetchall()
             return records
