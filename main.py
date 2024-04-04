@@ -136,7 +136,7 @@ async def help_event(message: types.Message):
 /start — Информация о боте
 /menu {Дата в формате ДД.ММ} — меню на заданный день
 /help — Список команд бота
-/searchBook - {И.О.Фамилия автора} / {Название}
+/searchBook - {И.О.Фамилия автора} , {Название}
 /bday {Дата в формате ДД.ММ} / {Ф/И/О} , {КлассБуква}
 
     { } / { } = Взаимозаменяемые дополнительные фильтры''')
@@ -219,9 +219,9 @@ async def bday_event(message: types.Message, command: CommandObject):
 dp.message.register(bday_event, Command("bday"))
 
 
-@dp.message(Command("searchBook"))
+@dp.message(Command("searchbook"))
 async def library_search_event(message: types.Message, command: CommandObject):
-    if message.chat != "private":
+    if message.chat.type != "private":
         try:
             await bot.send_message(chat_id=message.from_user.id,
                                    text="Недостаточно прав для выполнения действия.")
@@ -241,7 +241,7 @@ async def library_search_event(message: types.Message, command: CommandObject):
     op = "\n".join(op)
     await bot.send_message(chat_id=message.from_user.id,
                            text=f"Вот, что нашлось: \n{op}")
-dp.message.register(bday_event, Command("searchBook"))
+dp.message.register(bday_event, Command("searchbook"))
 
 
 async def scheduler():
