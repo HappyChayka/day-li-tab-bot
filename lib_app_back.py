@@ -75,7 +75,7 @@ def search_data_rec(fna="", sna="", BkID="",
     cursor.execute("""SELECT * FROM library WHERE 
                     fna LIKE ? OR sna LIKE ? OR BkID LIKE ? OR
                     Bkt LIKE ? OR Atr LIKE ? OR DBo LIKE ? OR
-                    Ddu LIKE ? OR sPr LIKE ? OR DoD LIKE?""",
+                    Ddu LIKE ? OR sPr LIKE ? OR DoD LIKE ?""",
                    (fna, sna, BkID,
                     Bkt, Atr, DBo,
                     Ddu, sPr, DoD))

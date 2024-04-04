@@ -10,12 +10,11 @@ from apscheduler.triggers.cron import CronTrigger
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.types import Update
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
-from aiohttp import web
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters.command import Command, CommandObject
 from sqlite3 import Error
 from func_proj_lib import find_by_date, find_by_name, find_in_menu
+from lib_app_back import search_data_rec
 from pytrovich.enums import NamePart, Gender, Case
 from pytrovich.maker import PetrovichDeclinationMaker
 
@@ -117,7 +116,8 @@ async def cmd_start(message: types.Message):
         await message.answer('''
 Привет!
 Я — первый бот Ли24!
-Пока что я могу только поздравить с днём рождения и отправить тебе актуальное меню столовой.
+Пока что я могу только поздравить с днём рождения, отправить тебе актуальное меню столовой
+и сказать, какие книги есть в нашей библиотеке.
 Но дальше будет только больше!
 
 Мои команды:
@@ -126,8 +126,7 @@ async def cmd_start(message: types.Message):
 /bday — Дни Рождения
 
 Напиши /help для дополнительной информации!
-
-(я не понимаю речь, извини)''')
+''')
 
 
 @dp.message(Command("help"))
@@ -135,12 +134,12 @@ async def help_event(message: types.Message):
     if message.chat.type == "private":
         await message.answer('''
 /start — Информация о боте
-/menu {Дата в формате ДД.ММ}
+/menu {Дата в формате ДД.ММ} — меню на заданный день
 /help — Список команд бота
+/searchBook - {И.О.Фамилия автора} / {Название}
 /bday {Дата в формате ДД.ММ} / {Ф/И/О} , {КлассБуква}
-    { } / { } = Взаимозаменяемые дополнительные фильтры
 
-    Обязательно соблюдайте последовательность строчных и заглавных букв.''')
+    { } / { } = Взаимозаменяемые дополнительные фильтры''')
 dp.message.register(help_event, Command("help"))
 
 
@@ -220,6 +219,31 @@ async def bday_event(message: types.Message, command: CommandObject):
 dp.message.register(bday_event, Command("bday"))
 
 
+@dp.message(Command("searchBook"))
+async def library_search_event(message: types.Message, command: CommandObject):
+    if message.chat != "private":
+        try:
+            await bot.send_message(chat_id=message.from_user.id,
+                                   text="Недостаточно прав для выполнения действия.")
+            await message.delete()
+        except:
+            pass
+        finally:
+            return
+    name, title = command.args.split(",")
+    op = list()
+    for i in search_data_rec(Atr=name.title(), Bkt=title.title()):
+        op.append("* " + " ".join([j for j in i if isinstance(j, str)]).strip())
+    if len(op) == 0:
+        await bot.send_message(chat_id=message.from_user.id,
+                               text="Такой книги, к сожалению, не нашлось.")
+        return
+    op = "\n".join(op)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text=f"Вот, что нашлось: \n{op}")
+dp.message.register(bday_event, Command("searchBook"))
+
+
 async def scheduler():
     f_scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
     # -1001185804748, 13225     li_space
@@ -242,17 +266,11 @@ async def on_shutdown():
 async def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
+    await on_startup()
+
     dp.include_router(router)
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
-
-    app = web.Application()
-    SimpleRequestHandler(
-        dispatcher=dp,
-        bot=bot
-    ).register(app, path=config.WEBHOOK_PATH)
-
-    setup_application(app, dp, bot=bot)
 
 
 async def yc_handler(event, context):
