@@ -230,10 +230,21 @@ async def library_search_event(message: types.Message, command: CommandObject):
             pass
         finally:
             return
-    name, title = command.args.split(",")
+    try:
+        arguments = command.args.split(",")
+        if len(arguments) == 2:
+            name, title = arguments
+        else:
+            raise TypeError
+    except TypeError:
+        await bot.send_message(chat_id=message.from_user.id,
+                               text="Некорректный запрос.")
+        return
     op = list()
-    for i in search_data_rec(Atr=name.title(), Bkt=title.title()):
-        op.append("* " + " ".join([j for j in i if isinstance(j, str)]).strip())
+    for i in search_data_rec(Atr=name.strip().title(), Bkt=title.strip().title()):
+        op.append("* " + " — ".join([j for j in i if isinstance(j, str)]).strip())
+    for i in search_data_rec(Bkt=name.strip().title(), Atr=title.strip().title()):
+        op.append("* " + " — ".join([j for j in i if isinstance(j, str)]).strip())
     if len(op) == 0:
         await bot.send_message(chat_id=message.from_user.id,
                                text="Такой книги, к сожалению, не нашлось.")
