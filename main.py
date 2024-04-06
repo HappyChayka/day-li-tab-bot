@@ -287,7 +287,7 @@ async def main():
     dp.shutdown.register(on_shutdown)
 
 
-async def yc_handler(event, context):
+async def yc_handler(event, context=None):
     try:
         update = Update.model_validate_json(event["body"], context={"bot": bot})
         await dp.feed_update(bot=bot, update=update)
