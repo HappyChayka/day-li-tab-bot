@@ -1,4 +1,4 @@
-BOT_TOKEN = "6436220801:AAFQC-2clHRBxmzNK9_6X57AUoCzyQwPoAM"
+BOT_TOKEN = "000000000:00000-000000000000_0000000000000000"
 STUDENTS_DB = "students.db"
 LIBRARY_DB = "library.db"
 BASE_WEBHOOK_URL = 'https://d5dfdot2qpr2pihi1h34.apigw.yandexcloud.net'
