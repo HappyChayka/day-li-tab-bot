@@ -1,9 +1,11 @@
 import sqlite3 as sql3
-import config
+import os
+
+lib_db = os.getenv("LIBRARY_DB")
 
 
 def ConnectData():
-    connection = sql3.connect(config.LIBRARY_DB)
+    connection = sql3.connect(lib_db)
     cursor = connection.cursor()
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS library (
@@ -23,7 +25,7 @@ def ConnectData():
 
 
 def add_data_rec(fna, sna, BkID, Bkt, Atr, DBo, Ddu, sPr, DoD):
-    connection = sql3.connect(config.LIBRARY_DB)
+    connection = sql3.connect(lib_db)
     cursor = connection.cursor()
     cursor.execute("""INSERT INTO library VALUES 
     (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (fna, sna,
@@ -34,7 +36,7 @@ def add_data_rec(fna, sna, BkID, Bkt, Atr, DBo, Ddu, sPr, DoD):
 
 
 def view_data():
-    connection = sql3.connect(config.LIBRARY_DB)
+    connection = sql3.connect(lib_db)
     cursor = connection.cursor()
     cursor.execute("""SELECT * FROM library""")
     rows = cursor.fetchall()
@@ -43,7 +45,7 @@ def view_data():
 
 
 def delete_data_rec(id):
-    connection = sql3.connect(config.LIBRARY_DB)
+    connection = sql3.connect(lib_db)
     cursor = connection.cursor()
     cursor.execute("""DELETE FROM library WHERE id=?""", (id, ))
     connection.commit()
@@ -53,7 +55,7 @@ def delete_data_rec(id):
 def update_data_rec(id, fna="", sna="", BkID="",
                     Bkt="", Atr="", DBo="",
                     Ddu="", sPr="", DoD=""):
-    connection = sql3.connect(config.LIBRARY_DB)
+    connection = sql3.connect(lib_db)
     cursor = connection.cursor()
     cursor.execute("""UPDATE library SET 
     fna=?, sna=?, BkID=?, 
@@ -70,7 +72,7 @@ def update_data_rec(id, fna="", sna="", BkID="",
 def search_data_rec(fna="", sna="", BkID="",
                     Bkt="", Atr="", DBo="",
                     Ddu="", sPr="", DoD=""):
-    connection = sql3.connect(config.LIBRARY_DB)
+    connection = sql3.connect(lib_db)
     cursor = connection.cursor()
     cursor.execute("""SELECT * FROM library WHERE 
                     fna LIKE ? OR sna LIKE ? OR BkID LIKE ? OR

@@ -1,11 +1,11 @@
 import glob
-import config
+import os
 import sqlite3 as sql3
 from io_proj_lib import import_line, how_many_lines, import_the_menu
 from datetime import date
 
 
-with sql3.connect(config.STUDENTS_DB) as connection:
+with sql3.connect(os.getenv("STUDENTS_DB")) as connection:
     cursor = connection.cursor()
 
 

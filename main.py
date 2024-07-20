@@ -1,27 +1,31 @@
+import time
+
 import nest_asyncio
 import sys
-import config
+import os
 from datetime import date
 from time import sleep
 import asyncio
 import logging
+# from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.types import Update
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters.command import Command, CommandObject
-from func_proj_lib import find_by_date, find_by_name, find_in_menu
-from lib_app_back import search_data_rec
+from students.func_proj_lib import find_by_date, find_by_name, find_in_menu
+from library.lib_app_back import search_data_rec
 from pytrovich.enums import NamePart, Gender, Case
 from pytrovich.maker import PetrovichDeclinationMaker
+# from middlewares import ThrottlingMiddleware
 
 nest_asyncio.apply()
 maker = PetrovichDeclinationMaker()
-logging.basicConfig(level=logging.INFO)
-webhook = config.BASE_WEBHOOK_URL + config.WEBHOOK_PATH
+logging.basicConfig(filename=os.getenv("LOG_FILE"), level=logging.INFO)
+webhook = os.getenv("BASE_WEBHOOK_URL") + os.getenv("WEBHOOK_PATH")
 session = AiohttpSession()
 bot_settings = {"session": session, "parse_mode": ParseMode.HTML}
-bot = Bot(token=config.BOT_TOKEN, **bot_settings)
+bot = Bot(token=os.getenv("BOT_TOKEN"), **bot_settings)
 dp = Dispatcher()
 router = Router()
 
@@ -49,10 +53,10 @@ async def send_celebs(message, bday_list, var_date="Сегодня", date_known=
     sleep(0.001)
     list_of_answers = list()
     for i in bday_list:
-        bday = i[-1]
         name = i[0].split()
         name = " ".join(await name_cases_to_genitive(name[0], name[1]))
-        school_class = i[1]
+        school_class, bday = i[1], i[-1]
+
         answ = f"\n*{name} из {school_class} класса"
         if not date_known:
             answ = f"\nДень рождения {answ} будет {bday}"
@@ -61,7 +65,6 @@ async def send_celebs(message, bday_list, var_date="Сегодня", date_known=
     sleep(0.001)
     if date_known:
         await message.answer("Поздравляем!")
-
 
 
 @dp.message(Command("start"))
@@ -188,17 +191,25 @@ async def main():
     await on_startup()
 
     dp.include_router(router)
+    #dp.message.middleware.register(ThrottlingMiddleware())
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
 
 
 async def yc_handler(event, context=None):
+    log_status = str
     try:
         update = Update.model_validate_json(event["body"], context={"bot": bot})
         await dp.feed_update(bot=bot, update=update)
+        log_status = "Succeeded processing"
         return {"statusCode": 200}
+
     except Exception as err:
+        log_status = "Failed processing"
         return {"statusCode": 500, "body": (event, err)}
+
+    finally:
+        logging.info(f"{log_status} event at {time.time()}. User ID [{event['body']['from']['id']}]. Message <{event['body']['text']}>")
 
 
 if __name__ == "__main__":
