@@ -1,6 +1,6 @@
-import config
 import tkinter.messagebox
 import lib_app_back as lab
+import library.lib_config as config
 from tkinter import *
 
 

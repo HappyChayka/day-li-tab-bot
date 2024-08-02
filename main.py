@@ -1,5 +1,5 @@
+import json
 import time
-
 import nest_asyncio
 import sys
 import os
@@ -7,25 +7,26 @@ from datetime import date
 from time import sleep
 import asyncio
 import logging
+from aiogram.client.default import DefaultBotProperties
 # from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
-from aiogram.types import Update
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters.command import Command, CommandObject
 from students.func_proj_lib import find_by_date, find_by_name, find_in_menu
 from library.lib_app_back import search_data_rec
 from pytrovich.enums import NamePart, Gender, Case
 from pytrovich.maker import PetrovichDeclinationMaker
+
 # from middlewares import ThrottlingMiddleware
 
 nest_asyncio.apply()
 maker = PetrovichDeclinationMaker()
-logging.basicConfig(filename=os.getenv("LOG_FILE"), level=logging.INFO)
+logger = logging.getLogger(__name__)
 webhook = os.getenv("BASE_WEBHOOK_URL") + os.getenv("WEBHOOK_PATH")
 session = AiohttpSession()
 bot_settings = {"session": session, "parse_mode": ParseMode.HTML}
-bot = Bot(token=os.getenv("BOT_TOKEN"), **bot_settings)
+bot = Bot(token=os.getenv("BOT_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 router = Router()
 
@@ -97,6 +98,8 @@ async def help_event(message: types.Message):
 /bday {Дата в формате ДД.ММ} / {Ф/И/О} , {КлассБуква}
 
     { } / { } = Взаимозаменяемые дополнительные фильтры''')
+
+
 dp.message.register(help_event, Command("help"))
 
 
@@ -112,6 +115,8 @@ async def menu_event(message: types.Message, command: CommandObject):
         if menu_list is None:
             menu_list = "В этот день столовая закрыта."
         await message.answer(f"{menu_list}")
+
+
 dp.message.register(menu_event, Command("menu"))
 
 
@@ -143,6 +148,8 @@ async def bday_event(message: types.Message, command: CommandObject):
                 await send_celebs(message, bday_list, "", False)
         else:
             await send_celebs(message, find_by_date(today_for_search))
+
+
 dp.message.register(bday_event, Command("bday"))
 
 
@@ -174,6 +181,8 @@ async def library_search_event(message: types.Message, command: CommandObject):
         op = "\n".join(sorted(list((set(op)))))
         await bot.send_message(chat_id=message.from_user.id,
                                text=f"Вот, что нашлось: \n{op}")
+
+
 dp.message.register(bday_event, Command("searchbook"))
 
 
@@ -191,26 +200,61 @@ async def main():
     await on_startup()
 
     dp.include_router(router)
-    #dp.message.middleware.register(ThrottlingMiddleware())
+    # dp.message.middleware.register(ThrottlingMiddleware())
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
 
 
-async def yc_handler(event, context=None):
-    log_status = str
-    try:
-        update = Update.model_validate_json(event["body"], context={"bot": bot})
-        await dp.feed_update(bot=bot, update=update)
-        log_status = "Succeeded processing"
-        return {"statusCode": 200}
+body = {'update_id': 229985864, 'edited_message': {'message_id': 27605,
+                                                   'from': {'id': 5688969926, 'is_bot': False, 'first_name': 'Kuller',
+                                                            'username': 'Dergin1', 'is_premium': True},
+                                                   'chat': {'id': -1001185804748, 'title': 'li24_space',
+                                                            'is_forum': True, 'type': 'supergroup'}, 'date': 1721309049,
+                                                   'edit_date': 1722593993, 'message_thread_id': 24945,
+                                                   'reply_to_message': {'message_id': 24945,
+                                                                        'from': {'id': 243614921, 'is_bot': False,
+                                                                                 'first_name': 'Marat',
+                                                                                 'last_name': 'Kudakaev',
+                                                                                 'username': 'mkud34',
+                                                                                 'language_code': 'ru',
+                                                                                 'is_premium': True},
+                                                                        'chat': {'id': -1001185804748,
+                                                                                 'title': 'li24_space',
+                                                                                 'is_forum': True,
+                                                                                 'type': 'supergroup'},
+                                                                        'date': 1716301911, 'message_thread_id': 24945,
+                                                                        'forum_topic_created': {
+                                                                            'name': 'временный чатик в ленту как в старые добрые',
+                                                                            'icon_color': 16766590,
+                                                                            'icon_custom_emoji_id': '5260735746712545576'},
+                                                                        'is_topic_message': True},
+                                                   'text': 'Так туда не все попадают,а те у кого есть какой то бизнес,а у моего папы кафе в Казани',
+                                                   'is_topic_message': True}}
 
-    except Exception as err:
-        log_status = "Failed processing"
-        return {"statusCode": 500, "body": (event, err)}
 
-    finally:
-        logging.info(f"{log_status} event at {time.time()}. User ID [{event['body']['from']['id']}]. Message <{event['body']['text']}>")
+async def yc_handler(event: dict[str], context=None):
+    body = json.loads(event["body"])
+    #body = event
+    if "message" in body.keys():
+        mess = body["message"]
+    elif "edited_message" in body.keys():
+        mess = body["edited_message"]
+    else:
+        print(body.keys())
+        raise KeyError
+
+    my_message = types.message.Message(message_id=mess["message_id"],
+                                       chat=mess["chat"],
+                                       date=mess["date"],
+                                       text=mess["text"])
+    my_update = types.update.Update(update_id=int(body['update_id']), message=my_message)
+    await dp.feed_update(bot=bot, update=my_update)
+    log_message = f"Processed event at {time.strftime('%X')}. User ID [{mess['from']['id']}]. Message <{mess['text']}>"
+    logger.info(log_message)
+    return {"statusCode": 200, "body": log_message}
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())
+    # asyncio.run(yc_handler(body))

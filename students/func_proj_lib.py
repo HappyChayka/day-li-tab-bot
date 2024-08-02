@@ -1,7 +1,7 @@
 import glob
 import os
 import sqlite3 as sql3
-from io_proj_lib import import_line, how_many_lines, import_the_menu
+from students.io_proj_lib import import_line, how_many_lines, import_the_menu
 from datetime import date
 
 
@@ -127,9 +127,9 @@ def find_by_name(name, class_id=None):
             return error
 
 
-if __name__ == "__main__":
-    create_table_students()
-    create_table_menu_master()
-    load_into_table("classes_txt/*")
-    connection.commit()
-    connection.close()
+# if __name__ == "__main__":
+#     create_table_students()
+#     create_table_menu_master()
+#     load_into_table("classes_txt/*")
+#     connection.commit()
+#     connection.close()

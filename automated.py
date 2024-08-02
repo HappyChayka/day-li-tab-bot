@@ -1,7 +1,7 @@
 import os
 import nest_asyncio
 from datetime import date
-from time import sleep
+from time import sleep, time
 import logging
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
@@ -13,7 +13,7 @@ from pytrovich.maker import PetrovichDeclinationMaker
 
 nest_asyncio.apply()
 maker = PetrovichDeclinationMaker()
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename=os.getenv("LOG_FILE"), level=logging.INFO)
 session = AiohttpSession()
 bot_settings = {"session": session, "parse_mode": ParseMode.HTML}
 bot = Bot(token=os.getenv("BOT_TOKEN"), **bot_settings)
@@ -90,6 +90,7 @@ async def dayli_sht(event, context=None):
         status = 500
         body = Err
     finally:
+        logging.info(f"Processed {res1, res2} at {time()}. Body: {body}")
         return {
             "statusCode": status,
             "body": [body, res1, res2]
