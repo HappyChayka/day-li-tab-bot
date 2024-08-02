@@ -205,36 +205,9 @@ async def main():
     dp.shutdown.register(on_shutdown)
 
 
-body = {'update_id': 229985864, 'edited_message': {'message_id': 27605,
-                                                   'from': {'id': 5688969926, 'is_bot': False, 'first_name': 'Kuller',
-                                                            'username': 'Dergin1', 'is_premium': True},
-                                                   'chat': {'id': -1001185804748, 'title': 'li24_space',
-                                                            'is_forum': True, 'type': 'supergroup'}, 'date': 1721309049,
-                                                   'edit_date': 1722593993, 'message_thread_id': 24945,
-                                                   'reply_to_message': {'message_id': 24945,
-                                                                        'from': {'id': 243614921, 'is_bot': False,
-                                                                                 'first_name': 'Marat',
-                                                                                 'last_name': 'Kudakaev',
-                                                                                 'username': 'mkud34',
-                                                                                 'language_code': 'ru',
-                                                                                 'is_premium': True},
-                                                                        'chat': {'id': -1001185804748,
-                                                                                 'title': 'li24_space',
-                                                                                 'is_forum': True,
-                                                                                 'type': 'supergroup'},
-                                                                        'date': 1716301911, 'message_thread_id': 24945,
-                                                                        'forum_topic_created': {
-                                                                            'name': 'временный чатик в ленту как в старые добрые',
-                                                                            'icon_color': 16766590,
-                                                                            'icon_custom_emoji_id': '5260735746712545576'},
-                                                                        'is_topic_message': True},
-                                                   'text': 'Так туда не все попадают,а те у кого есть какой то бизнес,а у моего папы кафе в Казани',
-                                                   'is_topic_message': True}}
-
-
 async def yc_handler(event: dict[str], context=None):
     body = json.loads(event["body"])
-    #body = event
+
     if "message" in body.keys():
         mess = body["message"]
     elif "edited_message" in body.keys():
@@ -243,13 +216,8 @@ async def yc_handler(event: dict[str], context=None):
         print(body.keys())
         raise KeyError
 
-    my_message = types.message.Message(message_id=mess["message_id"],
-                                       chat=mess["chat"],
-                                       date=mess["date"],
-                                       text=mess["text"])
-    my_update = types.update.Update(update_id=int(body['update_id']), message=my_message)
-    await dp.feed_update(bot=bot, update=my_update)
-    log_message = f"Processed event at {time.strftime('%X')}. User ID [{mess['from']['id']}]. Message <{mess['text']}>"
+    result = await dp.feed_raw_update(bot, body)
+    log_message = f"Processed event at {time.strftime('%X')}. User ID [{mess['from']['id']}]. Result: <{result}>"
     logger.info(log_message)
     return {"statusCode": 200, "body": log_message}
 
@@ -257,4 +225,3 @@ async def yc_handler(event: dict[str], context=None):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())
-    # asyncio.run(yc_handler(body))
