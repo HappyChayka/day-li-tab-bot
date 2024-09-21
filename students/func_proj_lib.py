@@ -1,9 +1,8 @@
 import glob
 import os
 import sqlite3 as sql3
-from students.io_proj_lib import import_line, how_many_lines, import_the_menu
+from students.io_proj_lib import import_line, how_many_lines, import_menu, read_from_docx
 from datetime import date
-
 
 with sql3.connect(os.getenv("STUDENTS_DB")) as connection:
     cursor = connection.cursor()
@@ -19,7 +18,7 @@ def create_table_students():
     class VARCHAR(3))''')
 
 
-def create_table_menu_master():
+def create_table_menu_master(location):
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS menu_master(
     one TEXT UNIQUE ON CONFLICT IGNORE, 
@@ -43,7 +42,7 @@ def create_table_menu_master():
     one, two, three, four, five, six, 
     eight, nine, ten, eleven, twelve, thirteen)
     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', import_the_menu("2weekrotation.txt"))
+    ''', import_menu(location))
 
 
 def find_in_menu(bot_today=date.today()):
@@ -61,7 +60,7 @@ def find_in_menu(bot_today=date.today()):
         return error
 
 
-def load_into_table(location):
+def load_into_table_txt(location):
     for ite in glob.glob(location):
         ite = ite.replace("\\", "/")
 
@@ -69,6 +68,13 @@ def load_into_table(location):
             cursor.execute('''
             INSERT INTO students(name, day_month_bday, year_bday, class) VALUES(?, ?, ?, ?)
             ''', import_line(ite, i)[1:])
+
+
+def load_into_table_list(data):
+    for line in data:
+        cursor.execute('''
+        INSERT INTO students(name, day_month_bday, year_bday, class) VALUES(?, ?, ?, ?)
+        ''', line)
 
 
 def find_by_date(var_date, class_id=None):
@@ -129,7 +135,8 @@ def find_by_name(name, class_id=None):
 
 # if __name__ == "__main__":
 #     create_table_students()
-#     create_table_menu_master()
-#     load_into_table("classes_txt/*")
+#     create_table_menu_master("2weekrotation.txt")
+#     connection.commit()
+#     load_into_table_list(read_from_docx("docx_files/*.docx"))
 #     connection.commit()
 #     connection.close()

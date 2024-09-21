@@ -1,4 +1,29 @@
-def import_the_menu(location):
+import glob
+from docx import Document
+
+
+def read_from_docx(location):
+    output = list()
+    for file_name in glob.glob(location):
+        word_doc = Document(file_name)
+        for table in word_doc.tables:
+            for row in table.rows:
+                base_line = list(map(lambda x: x.text.strip(), row.cells))
+                if "Дата" in base_line[2] or len(base_line[1]) == 0:
+                    continue
+                student_line = base_line[1:]
+                student_line.append(file_name[file_name.rfind("\\") + 1:file_name.find(" ")].strip())
+                line = formalize_bday(student_line)
+                output.append(line)
+    return output
+
+
+def formalize_bday(line):
+    day, month, year = line[1].split(".")
+    return [line[0], f"{day}.{month}", year, line[2]]
+
+
+def import_menu(location):
     output_list = []
     with open(location, "r", encoding='utf8') as filename:
         point_menu = []
@@ -40,6 +65,3 @@ def how_many_lines(location):
         for _ in filename:
             c += 1
     return c
-
-
-#print(len(import_the_menu("2weekrotation.txt")))

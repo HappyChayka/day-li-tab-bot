@@ -44,7 +44,7 @@ async def name_cases_to_genitive(l_name, f_name):
 
 
 async def send_celebs(message, bday_list, var_date="Сегодня", date_known=True):
-    if len(bday_list) < 0:
+    if len(bday_list) == 0:
         await message.answer(f"Ни у кого нет дня рождения.")
         return
 
