@@ -4,6 +4,7 @@ from datetime import date
 from time import sleep, time
 import logging
 from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram import Bot, Dispatcher, Router
 from students.func_proj_lib import find_by_date, find_in_menu
@@ -16,7 +17,7 @@ maker = PetrovichDeclinationMaker()
 logging.basicConfig(filename=os.getenv("LOG_FILE"), level=logging.INFO)
 session = AiohttpSession()
 bot_settings = {"session": session, "parse_mode": ParseMode.HTML}
-bot = Bot(token=os.getenv("BOT_TOKEN"), **bot_settings)
+bot = Bot(token=os.getenv("BOT_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 router = Router()
 

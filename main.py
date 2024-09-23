@@ -111,7 +111,7 @@ async def menu_event(message: types.Message, command: CommandObject):
         menu_list = find_in_menu(date_in_args)
     else:
         menu_list = find_in_menu()
-    if message.chat.type == "private" or message.from_user.id in get_chat_admins(message):
+    if message.chat.type == "private" or message.from_user.id in await get_chat_admins(message):
         if menu_list is None:
             menu_list = "В этот день столовая закрыта."
         await message.answer(f"{menu_list}")
@@ -122,7 +122,7 @@ dp.message.register(menu_event, Command("menu"))
 
 @dp.message(Command("bday"))
 async def bday_event(message: types.Message, command: CommandObject):
-    if message.chat.type == "private" or message.from_user.id in get_chat_admins(message):
+    if message.chat.type == "private" or message.from_user.id in await get_chat_admins(message):
         if command.args:
 
             comm_args = command.args.split(",")
@@ -155,7 +155,7 @@ dp.message.register(bday_event, Command("bday"))
 
 @dp.message(Command("searchbook"))
 async def library_search_event(message: types.Message, command: CommandObject):
-    if message.chat.type == "private" or message.from_user.id in get_chat_admins(message):
+    if message.chat.type == "private" or message.from_user.id in await get_chat_admins(message):
         try:
             arguments = command.args.split(",")
             if 1 <= len(arguments) <= 2:
