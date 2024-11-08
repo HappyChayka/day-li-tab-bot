@@ -187,6 +187,7 @@ dp.message.register(bday_event, Command("searchbook"))
 
 
 async def on_startup():
+    await bot.delete_webhook(drop_pending_updates=True)
     await bot.set_webhook(url=webhook)
 
 

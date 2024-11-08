@@ -86,7 +86,7 @@ async def dayli_sht(event, context=None):
     res1, res2 = "BAD", "BAD"
     try:
         res1 = await bday_sched()
-        #res2 = await menu_sched()
+        res2 = await menu_sched()
     except Exception as Err:
         status = 500
         body = Err

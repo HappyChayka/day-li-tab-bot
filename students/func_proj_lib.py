@@ -18,7 +18,7 @@ def create_table_students():
     class VARCHAR(3))''')
 
 
-def create_table_menu_master(location):
+def create_table_menu_master():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS menu_master(
     one TEXT UNIQUE ON CONFLICT IGNORE, 
@@ -37,12 +37,20 @@ def create_table_menu_master(location):
     fourteen NONE
     )''')
 
+
+def load_into_menu(location):
+    data = import_menu(location)
     cursor.execute('''
     INSERT INTO menu_master(
     one, two, three, four, five, six, 
     eight, nine, ten, eleven, twelve, thirteen)
     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', import_menu(location))
+    ''', data)
+
+
+def delete_menu_master():
+    cursor.execute("""
+    DROP TABLE menu_master""")
 
 
 def find_in_menu(bot_today=date.today()):
@@ -133,10 +141,12 @@ def find_by_name(name, class_id=None):
             return error
 
 
-# if __name__ == "__main__":
-#     create_table_students()
-#     create_table_menu_master("2weekrotation.txt")
-#     connection.commit()
-#     load_into_table_list(read_from_docx("docx_files/*.docx"))
-#     connection.commit()
-#     connection.close()
+if __name__ == "__main__":
+    #     create_table_students()
+    #delete_menu_master()
+    #create_table_menu_master()
+    #load_into_menu("2weekrotation.txt")
+    #     connection.commit()
+    #     load_into_table_list(read_from_docx("docx_files/*.docx"))
+    connection.commit()
+    connection.close()
