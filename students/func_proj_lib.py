@@ -4,6 +4,9 @@ import sqlite3 as sql3
 from students.io_proj_lib import import_line, how_many_lines, import_menu, read_from_docx
 from datetime import date
 
+
+STUDENT_SQL_KEYS = "name", "day_month_bday", "year_bday", "class"
+
 with sql3.connect(os.getenv("STUDENTS_DB")) as connection:
     cursor = connection.cursor()
 
@@ -86,67 +89,85 @@ def load_into_table_list(data):
 
 
 def find_by_date(var_date, class_id=None):
+    params = [str(var_date)]
+    class_str = ""
     if class_id is not None:
-        try:
-            cursor.execute('''
-                SELECT name, class, day_month_bday FROM students
-                WHERE day_month_bday = ? AND class = ?
-                ORDER BY name;
-                ''', [str(var_date), str(class_id)])
+        class_str = "AND class = ?"
+        params.append(class_id)
 
-            records = cursor.fetchall()
-            return records
-        except sql3.Error as error:
-            return error
-    else:
-        try:
-            cursor.execute('''
-                SELECT name, class, day_month_bday FROM students
-                WHERE day_month_bday = ?
-                ORDER BY name;
-                ''', [str(var_date)])
+    try:
+        cursor.execute(f'''
+            SELECT name, class, day_month_bday FROM students
+            WHERE day_month_bday = ? {class_str}
+            ORDER BY name;
+            ''', params)
 
-            records = cursor.fetchall()
-            return records
-        except sql3.Error as error:
-            return error
+        records = cursor.fetchall()
+        return records
+    except sql3.Error as error:
+        return error
+
 
 
 def find_by_name(name, class_id=None):
+    params = [f"%{name.title()}%".strip()]
+    class_str = ""
     if class_id is not None:
-        try:
-            cursor.execute('''
-                SELECT name, class, day_month_bday FROM students
-                WHERE name LIKE ? AND class = ?
-                ORDER BY name;
-                ''', [f"%{name.title()}%".strip(), class_id])
+        class_str = "AND class = ?"
+        params.append(str(class_id))
+    try:
+        cursor.execute(f'''
+            SELECT name, class, day_month_bday FROM students
+            WHERE name LIKE ? {class_str}
+            ORDER BY name;
+            ''', params)
 
-            records = cursor.fetchall()
-            return records
+        records = cursor.fetchall()
+        return records
 
-        except sql3.Error as error:
-            return error
-    else:
-        try:
-            cursor.execute('''
-                SELECT name, class, day_month_bday FROM students
-                WHERE name LIKE ?
-                ORDER BY name;
-                ''', [f"%{name.title()}%".strip()])
+    except sql3.Error as error:
+        return error
 
-            records = cursor.fetchall()
-            return records
 
-        except sql3.Error as error:
-            return error
+def sqlize_insert(keys) -> (str, str):
+    """returns keys and question marks for SQL execute statements, i.e.
+    \n('id,name,address', '?,?,?')"""
+    return ",".join(map(str, keys)), ",".join(list("?" * len(keys)))
+
+def sqlize_update(keys) -> str:
+    """returns keys and question marks for SQL execute statements, i.e.
+        \n(name = ?, address = ?)"""
+    return ",".join([f"{key} = ?" for key in keys])
+
+
+def add_entry(**data):
+    sql_keys, sql_huhs = sqlize_insert(data.keys())
+
+    cursor.execute(f'''
+        INSERT INTO students({sql_keys}) 
+        VALUES({sql_huhs})
+    ''', [data[key] for key in STUDENT_SQL_KEYS if key in data.keys()])
+
+
+def rewrite_entry(entry_id, **data):
+    sql_keys = sqlize_update(data.keys())
+
+    cursor.execute(f'''
+        UPDATE students
+        SET {sql_keys}
+        WHERE id = ?
+    ''', [data[key] for key in STUDENT_SQL_KEYS if key in data.keys()] + [entry_id])
+
 
 
 if __name__ == "__main__":
     #     create_table_students()
-    #delete_menu_master()
-    #create_table_menu_master()
-    #load_into_menu("2weekrotation.txt")
+    # delete_menu_master()
+    # create_table_menu_master()
+    # load_into_menu("2weekrotation.txt")
     #     connection.commit()
     #     load_into_table_list(read_from_docx("docx_files/*.docx"))
+    new_chel = {"name": "Джаудат Сабиров", "day_month_bday": "20.08", "class": "9Б"}
+    add_entry(**new_chel)
     connection.commit()
     connection.close()
